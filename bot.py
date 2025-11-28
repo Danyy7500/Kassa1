@@ -4,6 +4,10 @@
 
 TOKEN = "8595625321:AAHKYX0k8pJH28f2H3VJuN9Q8MMKOmIIITw" 
 
+pip uninstall telebot
+pip install pyTelegramBotAPI
+pip install pytelegrambotapi --upgrade
+
 import telebot
 import json
 from datetime import datetime
@@ -164,6 +168,7 @@ def excel(message):
 
 # ---------- ЗАПУСК ----------
 bot.polling(none_stop=True)
+
 
 
 
