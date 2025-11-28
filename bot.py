@@ -11,7 +11,7 @@ from openpyxl import Workbook
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
 
-bot = TeleBot(TOKEN)
+bot = TeleBot.Telebot(TOKEN)
 
 DATA_FILE = "data.json"
 HISTORY_FILE = "history.txt"
@@ -164,6 +164,7 @@ def excel(message):
 
 # ---------- ЗАПУСК ----------
 bot.polling(none_stop=True)
+
 
 
 
