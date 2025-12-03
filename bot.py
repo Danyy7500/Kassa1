@@ -5,13 +5,16 @@ from flask import Flask, request
 from openpyxl import Workbook
 from telebot import TeleBot, types
 
+# ========================== НАСТРОЙКИ ==========================
 TOKEN = os.getenv("BOT_TOKEN")
+if TOKEN is None:
+    raise ValueError("BOT_TOKEN не задан! Проверь Environment Variables")
+
 bot = TeleBot(TOKEN)
+app = Flask(__name__)
 
 DATA_FILE = "data.json"
 HISTORY_FILE = "history.txt"
-
-app = Flask(__name__)
 
 user_state = {}  # ожидание суммы
 
@@ -156,23 +159,32 @@ def excel(message):
 
 
 # ========================== WEBHOOK ==========================
-@app.post("/")
+@app.route(f"/{TOKEN}", methods=["POST"])
 def webhook():
-    data = request.get_data().decode("utf-8")
-    bot.process_new_updates([telebot.types.Update.de_json(data)])
+    json_str = request.get_data().decode("utf-8")
+    update = types.Update.de_json(json_str)
+    bot.process_new_updates([update])
     return "OK", 200
 
 
-@app.get("/setwebhook")
+@app.route("/setwebhook", methods=["GET"])
 def set_webhook():
     url = os.getenv("RENDER_EXTERNAL_URL")
-    bot.set_webhook(f"{url}/")
-    return f"Webhook установлен: {url}", 200
+    full_url = f"{url}/{TOKEN}"
+    bot.remove_webhook()
+    bot.set_webhook(full_url)
+    return f"Webhook установлен: {full_url}", 200
+
+
+@app.route("/")
+def index():
+    return "Бот работает!"
 
 
 # ========================== ЗАПУСК СЕРВЕРА ==========================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
+
 
 
 
