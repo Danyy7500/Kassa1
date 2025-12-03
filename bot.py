@@ -4,7 +4,9 @@ from datetime import datetime
 from flask import Flask, request
 from openpyxl import Workbook
 from telebot import TeleBot, types
+import telebot
 
+bot = telebot.TeleBot(8595625321:AAHKYX0k8pJH28f2H3VJuN9Q8MMKOmIIITw)
 TOKEN = os.getenv("BOT_TOKEN")
 bot = TeleBot(TOKEN)
 
@@ -173,4 +175,5 @@ def set_webhook():
 # ========================== ЗАПУСК СЕРВЕРА ==========================
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
+
 
