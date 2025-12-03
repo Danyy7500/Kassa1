@@ -5,9 +5,7 @@
 TOKEN = "8595625321:AAHKYX0k8pJH28f2H3VJuN9Q8MMKOmIIITw" 
 
 
-from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 
-import telebot
 
 bot = telebot.TeleBot(TOKEN)
 
@@ -162,6 +160,7 @@ def excel(message):
 
 # ---------- ЗАПУСК ----------
 bot.polling(none_stop=True)
+
 
 
 
