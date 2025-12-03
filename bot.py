@@ -1,17 +1,22 @@
+import os
+import json
+from datetime import datetime
+from flask import Flask, request
+from openpyxl import Workbook
+from telebot import TeleBot, types
 
-
-
-
-TOKEN = "8595625321:AAHKYX0k8pJH28f2H3VJuN9Q8MMKOmIIITw" 
-
+TOKEN = os.getenv("BOT_TOKEN")
+bot = TeleBot(TOKEN)
 
 DATA_FILE = "data.json"
 HISTORY_FILE = "history.txt"
 
-user_state = {}  # для ожидания суммы
+app = Flask(__name__)
+
+user_state = {}  # ожидание суммы
 
 
-# ---------- ФАЙЛЫ ----------
+# ========================== ФАЙЛЫ ==========================
 def load_data():
     try:
         with open(DATA_FILE, "r", encoding="utf-8") as f:
@@ -30,19 +35,19 @@ def add_to_history(text):
         f.write(text + "\n")
 
 
-# ---------- КНОПКИ ----------
+# ========================== КНОПКИ ==========================
 def main_keyboard():
-    kb = ReplyKeyboardMarkup(resize_keyboard=True)
+    kb = types.ReplyKeyboardMarkup(resize_keyboard=True)
     kb.add(
-        KeyboardButton("➕ USD"), KeyboardButton("➖ USD"),
-        KeyboardButton("➕ UAH"), KeyboardButton("➖ UAH")
+        types.KeyboardButton("➕ USD"), types.KeyboardButton("➖ USD"),
+        types.KeyboardButton("➕ UAH"), types.KeyboardButton("➖ UAH")
     )
-    kb.add(KeyboardButton("Баланс"), KeyboardButton("История"))
-    kb.add(KeyboardButton("Экспорт в Excel"))
+    kb.add(types.KeyboardButton("Баланс"), types.KeyboardButton("История"))
+    kb.add(types.KeyboardButton("Экспорт в Excel"))
     return kb
 
 
-# ---------- СТАРТ ----------
+# ========================== СТАРТ ==========================
 @bot.message_handler(commands=['start'])
 def start(message):
     bot.send_message(
@@ -52,13 +57,12 @@ def start(message):
     )
 
 
-# ---------- ОЖИДАНИЕ СУММЫ ----------
+# ========================== ОЖИДАНИЕ СУММЫ ==========================
 def ask_amount(message, operation, currency):
     user_state[message.chat.id] = (operation, currency)
     bot.send_message(message.chat.id, f"Введи сумму для '{operation} {currency}':")
 
 
-# ---------- ОБРАБОТКА КНОПОК ----------
 @bot.message_handler(func=lambda m: m.text in ["➕ USD", "➖ USD", "➕ UAH", "➖ UAH"])
 def handle_buttons(message):
     txt = message.text
@@ -67,8 +71,7 @@ def handle_buttons(message):
     ask_amount(message, operation, currency)
 
 
-# ---------- ВВОД СУММЫ ----------
-@bot.message_handler(func=lambda message: message.chat.id in user_state)
+@bot.message_handler(func=lambda m: m.chat.id in user_state)
 def process_amount(message):
     try:
         amount = float(message.text)
@@ -97,28 +100,26 @@ def process_amount(message):
     )
 
 
-# ---------- БАЛАНС ----------
+# ========================== БАЛАНС ==========================
 @bot.message_handler(func=lambda m: m.text == "Баланс")
 def balance(message):
     data = load_data()
     bot.send_message(message.chat.id, f"USD: {data['USD']}\nUAH: {data['UAH']}")
 
 
-# ---------- ИСТОРИЯ ----------
+# ========================== ИСТОРИЯ ==========================
 @bot.message_handler(func=lambda m: m.text == "История")
 def history(message):
     try:
         with open(HISTORY_FILE, "r", encoding="utf-8") as f:
-            text = f.read()
-            if not text:
-                text = "История пустая."
+            text = f.read() or "История пустая."
     except:
         text = "История пустая."
 
     bot.send_message(message.chat.id, text[:3500])
 
 
-# ---------- ЭКСЕЛЬ ----------
+# ========================== ЭКСЕЛЬ ==========================
 @bot.message_handler(func=lambda m: m.text == "Экспорт в Excel")
 def excel(message):
     try:
@@ -137,11 +138,11 @@ def excel(message):
         try:
             parts = line.split(" — ")
             date = parts[0]
-            operation = parts[1].split(" → ")[0]
+            op = parts[1].split(" → ")[0]
             balances = parts[1].split(" → ")[1]
             usd = float(balances.split(" ")[0].split("=")[1])
             uah = float(balances.split(" ")[1].split("=")[1])
-            sheet.append([date, operation, usd, uah])
+            sheet.append([date, op, usd, uah])
         except:
             continue
 
@@ -154,18 +155,22 @@ def excel(message):
     bot.send_message(message.chat.id, "Готово!")
 
 
-# ---------- ЗАПУСК ----------
-bot.polling(none_stop=True)
+# ========================== WEBHOOK ==========================
+@app.post("/")
+def webhook():
+    data = request.get_data().decode("utf-8")
+    bot.process_new_updates([telebot.types.Update.de_json(data)])
+    return "OK", 200
 
 
+@app.get("/setwebhook")
+def set_webhook():
+    url = os.getenv("RENDER_EXTERNAL_URL")
+    bot.set_webhook(f"{url}/")
+    return f"Webhook установлен: {url}", 200
 
 
-
-
-
-
-
-
-
-
+# ========================== ЗАПУСК СЕРВЕРА ==========================
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.getenv("PORT", 10000)))
 
